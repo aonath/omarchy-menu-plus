@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "menuplus.dock",
+  "name": "Dock (menu+)",
+  "version": "1.0.0",
+  "author": "chucao",
+  "description": "Omarchy dock whose app grid goes back to the menu with Esc and peeks hidden rows.",
+  "kinds": [
+    "service"
+  ],
+  "entryPoints": {
+    "service": "Dock.qml"
+  },
+  "omarchy": {
+    "clonedFrom": "omarchy.dock"
+  }
+}

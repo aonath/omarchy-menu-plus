@@ -1,0 +1,84 @@
+#!/bin/bash
+
+# Like omarchy-menu-select (one option, same option format and -- --width /
+# --maxheight), for pickers that have a previous step: going back (Left or
+# Backspace with an empty search) exits with 3 so the caller can show its
+# previous step. Selection on stdout and exit 0; Escape exits with 1.
+# --back-label <name> names the previous step in the menu's last row.
+# Needs the menuplus.menu clone of the Omarchy menu, which reads "backFile".
+
+set -euo pipefail
+
+if (( $# < 1 )); then
+  echo "Usage: menu-select <prompt> [option...] [-- --width <pixels> --maxheight <pixels> --back-label <name>]" >&2
+  exit 1
+fi
+
+prompt="$1"
+shift
+
+options=()
+menu_width=""
+menu_maxheight=""
+back_label=""
+while (( $# > 0 )); do
+  if [[ $1 == "--" ]]; then
+    shift
+    while (( $# > 0 )); do
+      case "$1" in
+        --width) shift; menu_width="${1:-}" ;;
+        --height | --maxheight) shift; menu_maxheight="${1:-}" ;;
+        --back-label) shift; back_label="${1:-}" ;;
+      esac
+      (( $# > 0 )) && shift
+    done
+    break
+  fi
+  options+=("$1")
+  shift
+done
+
+if (( ${#options[@]} == 0 )); then
+  echo "Usage: menu-select <prompt> [option...] [-- menu args...]" >&2
+  exit 1
+fi
+
+selection_file=$(mktemp)
+done_file=$(mktemp)
+back_file=$(mktemp)
+rm -f "$done_file" "$back_file"
+trap 'rm -f "$selection_file" "$done_file" "$back_file"' EXIT
+
+options_json=$(perl -MEncode=decode -MJSON::PP=encode_json -e 'print encode_json([map { decode("UTF-8", $_) } @ARGV])' "${options[@]}")
+payload=$(perl -MEncode=decode -MJSON::PP=encode_json,decode_json -e '
+  my $payload = {
+    mode => "select",
+    prompt => decode("UTF-8", $ARGV[0]),
+    options => decode_json($ARGV[1]),
+    multiple => JSON::PP::false,
+    selected => [],
+    onChange => [],
+    changeKey => "",
+    selectionFile => decode("UTF-8", $ARGV[2]),
+    doneFile => decode("UTF-8", $ARGV[3]),
+    backFile => decode("UTF-8", $ARGV[4]),
+    backLabel => decode("UTF-8", $ARGV[7])
+  };
+  $payload->{width} = int($ARGV[5]) if length($ARGV[5] // "");
+  $payload->{maxHeight} = int($ARGV[6]) if length($ARGV[6] // "");
+  print encode_json($payload)
+' "$prompt" "$options_json" "$selection_file" "$done_file" "$back_file" "$menu_width" "$menu_maxheight" "$back_label")
+
+omarchy-shell shell summon omarchy.menu "$payload" >/dev/null || exit 2
+
+while [[ ! -e $done_file ]]; do
+  sleep 0.05
+done
+
+if [[ -s $selection_file ]]; then
+  cat "$selection_file"
+elif [[ -e $back_file ]]; then
+  exit 3
+else
+  exit 1
+fi

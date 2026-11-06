@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "menuplus.menu",
+  "name": "Omarchy menu+",
+  "version": "1.0.0",
+  "author": "chucao",
+  "description": "Omarchy menu that fits its text, keeps the cursor when going back, shows how to go back, peeks hidden rows and returns from pickers and panels.",
+  "kinds": [
+    "menu",
+    "bar-widget"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "menu": "Menu.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Omarchy menu+",
+    "description": "Launches the Omarchy menu",
+    "category": "Compositor",
+    "allowMultiple": false
+  },
+  "omarchy": {
+    "clonedFrom": "omarchy.menu"
+  }
+}
