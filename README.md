@@ -37,6 +37,8 @@ esac
 ## Instalar
 
 ```bash
+git clone https://github.com/aonath/omarchy-menu-plus.git
+cd omarchy-menu-plus
 ./install.sh
 ```
 
@@ -54,4 +56,4 @@ Vuelven los plugins originales de Omarchy.
 
 - Son copias modificadas de plugins de Omarchy: las mejoras que Omarchy haga a esos plugins no llegan solas. Para incorporarlas, hay que aplicar de nuevo estos cambios sobre la versión nueva.
 - Los plugins copiados no reciben la biblioteca de aplicaciones del shell, así que `menuplus.dock` crea la suya.
-- Combina con [omarchy-matrix](../omarchy-matrix): con los dos instalados, Appearance › Workspace Layout usa las teselas del botón de la barra.
+- Combina con [omarchy-matrix](https://github.com/aonath/omarchy-matrix): con los dos instalados, Appearance › Workspace Layout usa las teselas del botón de la barra.
