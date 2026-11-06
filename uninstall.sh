@@ -19,6 +19,11 @@ for name in menu dock emojis clipboard image-picker; do
 done
 rm -f "$BIN/menu-select"
 
+if [[ -f $MENU ]] && grep -q '// omarchy-menu-plus begin' "$MENU"; then
+  cp "$MENU" "$MENU.bak.$(date +%s)"
+  sed -i '/^  \/\/ omarchy-menu-plus begin$/,/^  \/\/ omarchy-menu-plus end$/d' "$MENU"
+fi
+
 # The stock menu cannot draw layout tiles: give omarchy-matrix rows glyphs.
 if [[ -f $MENU ]] && grep -q '// omarchy-matrix begin' "$MENU"; then
   sed -i '/\/\/ omarchy-matrix begin/,/\/\/ omarchy-matrix end/{s/"icon":"layout:dwindle"/"icon":"󱓻"/; s/"icon":"layout:scrolling"/"icon":"󰝥"/; s/"icon":"layout:floating"/"icon":"󰔶"/; s/"icon":"layout:matrix"/"icon":"󰕰"/}' "$MENU"

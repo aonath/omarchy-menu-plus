@@ -43,6 +43,9 @@ function normalizeItem(id, raw) {
     // A row whose action opens a list picker: it shows the submenu arrow, and
     // Left in the picker comes back to the menu.
     picker: value.picker === true,
+    // An on/off setting: drawn as a switch showing its `checked:` state, and
+    // flipping it keeps the menu open.
+    toggle: value.toggle === true,
     // Fields this source wrote itself: a user row that reuses a default id
     // overrides only these and keeps the rest (label, checked, ...).
     explicit: Object.keys(value)
@@ -317,10 +320,27 @@ function isDisabled(disabledResults, entry) {
   return !!(disabledResults && disabledResults[entry.id])
 }
 
+var TOGGLE_ON = String.fromCodePoint(0xf205)   // nf-fa-toggle_on
+var TOGGLE_OFF = String.fromCodePoint(0xf204)  // nf-fa-toggle_off
+var TOGGLE_BUSY = String.fromCodePoint(0xf252) // nf-fa-hourglass_half
+
+// "" for ordinary rows; "on", "off" or "busy" (being flipped) for switches.
+function toggleState(entry, checkedResults) {
+  if (!entry.toggle) return ""
+  if (entry.busy) return "busy"
+  return checkedResults && checkedResults[entry.id] ? "on" : "off"
+}
+
+function toggleGlyph(state) {
+  return state === "on" ? TOGGLE_ON : (state === "busy" ? TOGGLE_BUSY : TOGGLE_OFF)
+}
+
 // A disabled row is software you already have, which is the same thing the ✓
 // says everywhere else in the menu, so it earns the same marker.
 function labelFor(entry, checkedResults, disabledResults) {
   if (!entry) return ""
+  // A switch shows its state itself; the check mark is for picking one of several.
+  if (entry.toggle) return entry.label
   var marked = (entry.checked && checkedResults && checkedResults[entry.id]) || isDisabled(disabledResults, entry)
   return marked ? entry.label + " ✓" : entry.label
 }
@@ -407,6 +427,7 @@ function displayRow(items, itemOrder, checkedResults, disabledResults, entry, de
     disabled: isDisabled(disabledResults, entry),
     kind: entry.kind,
     icon: entry.icon,
+    toggleState: toggleState(entry, checkedResults),
     iconFont: entry.iconFont || "",
     appIcon: entry.appIcon || "",
     appId: entry.appId || "",

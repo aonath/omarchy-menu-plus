@@ -15,6 +15,10 @@ Mejoras al menú de [Omarchy](https://omarchy.org) y a los paneles que se abren 
 - **Listas:** las entradas que abren una lista (Transcode, Keybindings, Plugins, Timezone, Remove…) llevan `›` como los submenús, y en esa lista `←` vuelve al menú.
   - Una entrada propia se marca con `"picker": true` en `~/.config/omarchy/extensions/omarchy-menu.jsonc`.
 - **Extensiones:** una entrada de la extensión que reutiliza el id de una de Omarchy cambia solo los campos que declara. Antes perdía la etiqueta y la marca ✓.
+- **Interruptores:** los ajustes que se prenden y apagan se ven como un interruptor al final de la fila, que muestra su estado real (encendido en color de acento). Cambiarlo no cierra el menú y el cursor se queda en la fila.
+  - Los pares de Omarchy que se turnaban («Nightlight On» / «Nightlight Off», «Window Gaps On» / «Off», Animations, Bar, Battery %, Auto-hide Dock, Touchpad, Laptop Display…) pasan a ser un solo interruptor cada uno.
+  - Una entrada propia se vuelve interruptor con `"toggle": true` y un `"checked"` que diga si está encendida.
+  - Las entradas donde se elige una opción entre varias (Window Corners, Workspace Layout…) siguen cerrando el menú al elegir y marcan con ✓ la actual.
 - **Iconos `"icon": "layout:<modo>"`:** dibujan las teselas de los layouts (`dwindle`, `scrolling`, `floating`, `matrix`).
 
 **Paneles con movimiento lateral:** Apps (`menuplus.dock`), Emoji (`menuplus.emojis`), Clipboard History (`menuplus.clipboard`) y Theme, Background y Unlock (`menuplus.image-picker`).

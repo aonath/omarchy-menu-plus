@@ -157,7 +157,7 @@ Item {
       if (showDetails && row.detail) widest = Math.max(widest, Math.min(detailCap, detailMetrics.advanceWidth(String(row.detail))))
     }
     var chrome = root.rowReservedBorderLeft + Style.space(8) + Style.space(36) + Style.space(6)
-      + Style.space(6) + Style.space(14) + Style.space(8) + root.rowReservedBorderRight
+      + Style.space(16) + Style.space(30) + Style.space(8) + root.rowReservedBorderRight
     var prompt = Math.max(promptMetrics.advanceWidth(root.promptText + "  "), promptMetrics.advanceWidth(root.footerText + "  "))
     var insets = card.contentLeftInset + card.contentRightInset
     root.fittedWidth = Math.ceil(Math.max(widest + chrome, prompt) + insets + Style.space(4))
@@ -696,7 +696,7 @@ Item {
 
     if (root.dmenuMultiple && root.dmenuOnChange.length === 0) {
       displayModel.append({
-        itemId: "dmenu.apply", disabled: false, kind: "dmenu", icon: "", iconFont: "",
+        itemId: "dmenu.apply", disabled: false, kind: "dmenu", icon: "", iconFont: "", toggleState: "",
         appIcon: "", appId: "", label: Commons.I18n.t("common.apply"), target: "",
         detail: Commons.I18n.tn("menu.selectedCount", root.dmenuSelected.length).arg(Commons.I18n.formatNumber(root.dmenuSelected.length)), path: "", childCount: 0,
         action: "", provider: "", score: -1, section: ""
@@ -720,6 +720,7 @@ Item {
         kind: "dmenu",
         icon: root.dmenuMultiple ? (root.dmenuSelected.indexOf(MenuModel.dmenuValue(root.dmenuOptions[i])) !== -1 ? "✓" : "○") : icon,
         iconFont: "",
+        toggleState: "",
         appIcon: "",
         appId: "",
         label: label,
@@ -1011,6 +1012,52 @@ Item {
   }
 
   Process { id: backProc }
+
+  // Switch rows: run the action in place, show the row busy until it is done,
+  // then read every `checked:` again and stay on the row.
+  property var toggleQueue: []
+  property string toggleRunning: ""
+  property string reselectId: ""
+
+  function setBusy(id, busy) {
+    var entry = root.item(id)
+    if (!entry) return
+    var next = ({})
+    for (var k in root.items) next[k] = root.items[k]
+    var copy = ({})
+    for (var f in entry) copy[f] = entry[f]
+    copy.busy = busy
+    next[id] = copy
+    root.items = next
+  }
+
+  function flipToggle(id, action) {
+    root.toggleQueue = root.toggleQueue.concat([{ id: id, action: String(action || "") }])
+    root.setBusy(id, true)
+    root.reselectId = id
+    root.rebuildDisplay()
+    root.selectItem(id)
+    root.runNextToggle()
+  }
+
+  function runNextToggle() {
+    if (toggleProc.running || root.toggleQueue.length === 0) return
+    var next = root.toggleQueue[0]
+    root.toggleQueue = root.toggleQueue.slice(1)
+    root.toggleRunning = next.id
+    toggleProc.command = ["bash", "-lc", next.action]
+    toggleProc.running = true
+  }
+
+  Process {
+    id: toggleProc
+    onExited: {
+      root.setBusy(root.toggleRunning, false)
+      root.toggleRunning = ""
+      if (root.toggleQueue.length > 0) root.runNextToggle()
+      else root.evaluateGuards()
+    }
+  }
   Process { id: handoffProc }
 
   // Omarchy's rows whose action opens a list picker (omarchy-menu-select and
@@ -1128,6 +1175,11 @@ Item {
 
   function applySelected(id, action) {
     if (!id) { cancel(); return }
+    var picked = root.item(id)
+    if (picked && picked.toggle) {
+      root.flipToggle(id, action)
+      return
+    }
     root.rememberMenu(id)
     // A panel this row opens (emojis, clipboard, image picker, app grid) goes
     // back here on Esc: it reads which menu from the handoff file
@@ -1474,6 +1526,10 @@ Item {
       root.checkedResults = nextChecked
       root.disabledResults = nextDisabled
       if (root.opened) root.rebuildDisplay()
+      if (root.opened && root.reselectId) {
+        root.selectItem(root.reselectId)
+        root.reselectId = ""
+      }
       // Run the evaluation that had to stand aside. Deferred by a turn so the
       // process is settled before its command is set again.
       if (root.guardsPending) Qt.callLater(function() { root.evaluateGuards() })
@@ -1696,6 +1752,8 @@ Item {
               required property string action
               required property int childCount
               required property bool disabled
+              // "on", "off" or "busy" for an on/off setting: a switch at the end of the row.
+              required property string toggleState
 
               readonly property bool hasCursor: root.cursorActive && row.index === root.selectedIndex
               readonly property bool isApp: row.kind === "app"
@@ -1806,7 +1864,7 @@ Item {
 
               Row {
                 id: trail
-                width: Style.space(14)
+                width: row.toggleState ? Style.space(30) : Style.space(14)
                 anchors.right: parent.right
                 anchors.rightMargin: root.rowReservedBorderRight + Style.space(8)
                 y: contentColumn.y + labelText.y + (labelText.height - height) / 2
@@ -1824,6 +1882,18 @@ Item {
                 }
 
                 Text {
+                  visible: row.toggleState !== ""
+                  textFormat: Text.PlainText
+                  text: MenuModel.toggleGlyph(row.toggleState)
+                  color: row.toggleState === "on" ? Commons.Color.accent : (row.hasCursor ? root.selectedText : root.foreground)
+                  opacity: row.toggleState === "on" ? 1 : 0.5
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.iconLarge
+                  anchors.verticalCenter: parent.verticalCenter
+                }
+
+                Text {
+                  visible: row.toggleState === ""
                   textFormat: Text.PlainText
                   readonly property bool leads: row.kind === "menu" || row.kind === "link" || root.pickerIds[row.itemId] === true
                     || (root.item(row.itemId) !== null && root.item(row.itemId).picker === true)

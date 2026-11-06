@@ -55,6 +55,31 @@ for id in "${IDS[@]}"; do
   omarchy plugin enable "$id" >/dev/null
 done
 
+# Omarchy's on/off pairs as switches that keep the menu open.
+mkdir -p "$(dirname "$MENU")"
+[[ -f $MENU ]] || printf '{\n}\n' >"$MENU"
+cp "$MENU" "$MENU.bak.$(date +%s)"
+python3 - "$MENU" "$SRC/menu/toggles.jsonc" <<'PY'
+import sys
+path, block_path = sys.argv[1:3]
+BEGIN, END = "  // omarchy-menu-plus begin", "  // omarchy-menu-plus end"
+block = open(block_path).read().rstrip("\n")
+lines = open(path).read().split("\n")
+if BEGIN in lines:
+    start, end = lines.index(BEGIN), lines.index(END)
+    del lines[start:end + 1]
+close = max(i for i, l in enumerate(lines) if l.strip() == "}")
+for i in range(close - 1, -1, -1):
+    stripped = lines[i].strip()
+    if stripped and not stripped.startswith("//"):
+        if not stripped.endswith((",", "{")):
+            lines[i] = lines[i] + ","
+        break
+lines[close:close] = [BEGIN, block, END]
+open(path, "w").write("\n".join(lines))
+PY
+say "menu switches in $MENU"
+
 # With omarchy-matrix installed, its Workspace Layout rows get the tiles of
 # its bar button.
 if [[ -f $MENU ]] && grep -q '// omarchy-matrix begin' "$MENU"; then
